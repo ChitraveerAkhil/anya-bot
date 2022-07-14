@@ -53,7 +53,7 @@ def initDriver(website):
     return driver
 
 def initValues():
-    global notInListWords 
+    global nonListedWords 
     global storedWords
     global wordledWords
     global permutatedWords
@@ -74,11 +74,11 @@ def initValues():
     wordledWordsFile = FileOperations.parseFileName(csvFilesLocation,configData["wordledWordsFile"])
     
     permutatedWords = FileOperations.readCsvFile(permutatedWordsFile) 
-    nonListedWordsFile = FileOperations.readCsvFile(nonListedWordsFile)
+    nonListedWords = FileOperations.readCsvFile(nonListedWordsFile)
     storedWords = FileOperations.readCsvFile(storedWordsFile)
     wordledWords = FileOperations.readCsvFile(wordledWordsFile)
 
-    nonChanceWords = nonListedWordsFile+wordledWords
+    nonChanceWords = nonListedWords+wordledWords
 
     savedWords = storedWords + permutatedWords
     for word in nonChanceWords:
@@ -120,7 +120,7 @@ def fillRow(row):
     resultFound = False
     word,isOptWord = fetchWord()
     if word is None or isOptWord is False:
-        isFilled, resultFound = formWord(row)
+        word, isFilled, resultFound = formWord(row)
     else:
         isFilled, resultFound = enterWord(word,row)
     
@@ -217,14 +217,14 @@ def formWord(row):
         mergedList = mergedList+mergedList
     permutationLength = 5 - len(correctChars)
     while not isFilled:
-        isFilled, resultFound = permuteAndEnterWord(row, tempWord, mergedList, permutationLength)
+        word, isFilled, resultFound = permuteAndEnterWord(row, tempWord, mergedList, permutationLength)
         if not isFilled:
             tempWord = buildWord.copy()
             mergedList += mergedList
             correctChars = [i for i in tempWord if i != '0']
             permutationLength = 5 - len(correctChars)
 
-    return isFilled, resultFound
+    return word, isFilled, resultFound
 
 def enterWord(word,row):
     isFilled = False
@@ -252,7 +252,7 @@ def enterWord(word,row):
         if dataState == 'tbd':
             FileOperations.writeWordToCsv(nonListedWordsFile,word)
             hitBackSpace(5)
-            notInListWords.append(word)
+            nonChanceWords.append(word)
         else:
             if word not in storedWords:
                 FileOperations.writeWordToCsv(storedWordsFile,word)
@@ -294,7 +294,7 @@ def permuteAndEnterWord(row, tempWord, mergedList, permutationLength):
                 print(word)
                 permutatedWords.append(word)
                 FileOperations.writeWordToCsv(permutatedWordsFile, word)
-    return isFilled, resultFound
+    return word, isFilled, resultFound
 
 def checkElementExist(className):
     try:
