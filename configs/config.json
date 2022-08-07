@@ -1,0 +1,14 @@
+{
+    "website" : "https://www.nytimes.com/games/wordle/index.html",
+    "csvFilesLocation" : "csv",
+    "permutatedWordsFile":"permutated_words.csv",
+    "nonListedWordsFile": "not_in_listed_words.csv",
+    "storedWordsFile":"stored_words.csv",
+    "wordledWordsFile":"wordled_words.csv",
+    "initialPopUpClosureClass": "Modal-module_closeIcon__b4z74",
+    "wordleRowClass" : "Row-module_row__dEHfN",
+    "consumerKey" : "*********************",
+    "consumerSecretKey" : "*********************",
+    "accessToken" : "*********************",
+    "accessSecretToken" : "*********************"
+}
