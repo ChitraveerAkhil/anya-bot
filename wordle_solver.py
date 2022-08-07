@@ -19,15 +19,16 @@ global configData
 alphabetDict = {}
 absentChars = []
 presentChars = []
-possibleChars = [x for x in  'EARIOTNSLCUDPMHGBFYWKVXZJQ']
-buildWord = ['0','0','0','0','0']
+possibleChars = [x for x in 'EARIOTNSLCUDPMHGBFYWKVXZJQ']
+buildWord = ['0', '0', '0', '0', '0']
+
 
 def initConfigFile():
     global configData
-    configFilePath = FileOperations.parseFileName('configs','config.json')
+    configFilePath = FileOperations.parseFileName('configs', 'config.json')
     args = sys.argv
-    if len(args) >  1:
-        configFilePath = FileOperations.parseFileName(args[1],args[2])
+    if len(args) > 1:
+        configFilePath = FileOperations.parseFileName(args[1], args[2])
     configData = FileOperations.initJsonFile(configFilePath)
     global website
 
@@ -38,7 +39,7 @@ def initDriver(website):
 
     if platform.system() == 'Linux':
         from pyvirtualdisplay import Display
-        display = Display(visible=0, size=(800, 800))  
+        display = Display(visible=0, size=(800, 800))
         display.start()
         print("Display Started!")
 
@@ -52,28 +53,33 @@ def initDriver(website):
         print("No website found")
     return driver
 
+
 def initValues():
-    global nonListedWords 
+    global nonListedWords
     global storedWords
     global wordledWords
     global permutatedWords
     global savedWords
-    
+
     global configData
-    
+
     global storedWordsFile
     global wordledWordsFile
     global nonListedWordsFile
     global permutatedWordsFile
     global nonChanceWords
-    
+
     csvFilesLocation = configData["csvFilesLocation"]
-    permutatedWordsFile = FileOperations.parseFileName(csvFilesLocation,configData["permutatedWordsFile"])
-    nonListedWordsFile = FileOperations.parseFileName(csvFilesLocation,configData["nonListedWordsFile"])
-    storedWordsFile = FileOperations.parseFileName(csvFilesLocation,configData["storedWordsFile"])
-    wordledWordsFile = FileOperations.parseFileName(csvFilesLocation,configData["wordledWordsFile"])
-    
-    permutatedWords = FileOperations.readCsvFile(permutatedWordsFile) 
+    permutatedWordsFile = FileOperations.parseFileName(
+        csvFilesLocation, configData["permutatedWordsFile"])
+    nonListedWordsFile = FileOperations.parseFileName(
+        csvFilesLocation, configData["nonListedWordsFile"])
+    storedWordsFile = FileOperations.parseFileName(
+        csvFilesLocation, configData["storedWordsFile"])
+    wordledWordsFile = FileOperations.parseFileName(
+        csvFilesLocation, configData["wordledWordsFile"])
+
+    permutatedWords = FileOperations.readCsvFile(permutatedWordsFile)
     nonListedWords = FileOperations.readCsvFile(nonListedWordsFile)
     storedWords = FileOperations.readCsvFile(storedWordsFile)
     wordledWords = FileOperations.readCsvFile(wordledWordsFile)
@@ -85,21 +91,30 @@ def initValues():
         if word in savedWords:
             savedWords.remove(word)
 
+
 def closePopUp(driver):
     initialPopUpClosureClass = configData["initialPopUpClosureClass"]
     try:
-        closePopUpBox = driver.find_element(By.CLASS_NAME,initialPopUpClosureClass)
+        closePopUpBox = driver.find_element(
+            By.CLASS_NAME, initialPopUpClosureClass)
         if closePopUpBox is not None:
             closePopUpBox.click()
     except:
         print("Element Not found")
     time.sleep(2)
 
+
 def findWord():
     global driver
-    rows = driver.find_elements(By.CLASS_NAME,configData["wordleRowClass"])
+    rows = driver.find_elements(By.CLASS_NAME, configData["wordleRowClass"])
+    rowCount = 0
     for row in rows:
-        isFilled, word, resultFound = fillRow(row)
+        isFilled, word, resultFound, correctWord = fillRow(row, rowCount)
+
+        while isFilled is False and word != None:
+            isFilled, word, resultFound, correctWord = fillRow(row, rowCount)
+        if isFilled and not resultFound:
+            checkPresentChars(word)
 
         if resultFound:
             twitterEnabled = configData["twitterEnabled"]
@@ -107,34 +122,38 @@ def findWord():
                 shareInTwitter()
             driver.close()
             if word not in storedWords:
-                FileOperations.writeWordToCsv(storedWordsFile,word)
+                FileOperations.writeWordToCsv(storedWordsFile, word)
             if word not in wordledWords:
-                FileOperations.writeWordToCsv(wordledWordsFile,word)
+                if correctWord:
+                    FileOperations.writeWordToCsv(wordledWordsFile, word)
             break
-        while isFilled is False and word != None:
-            isFilled, word, resultFound = fillRow(row)
-        if isFilled and not resultFound: 
-            checkPresentChars(word)
 
-def fillRow(row):
+        rowCount += 1
+
+
+def fillRow(row, rowCount):
     resultFound = False
-    word,isOptWord = fetchWord()
+    correctWord = False
+    word, isOptWord = fetchWord()
     if word is None or isOptWord is False:
-        word, isFilled, resultFound = formWord(row)
+        word, isFilled, resultFound, correctWord = formWord(row, rowCount)
     else:
-        isFilled, resultFound = enterWord(word,row)
-    
-    return isFilled,word,resultFound
+        isFilled, resultFound, correctWord = enterWord(word, row, rowCount)
+
+    return isFilled, word, resultFound, correctWord
+
 
 def shareInTwitter():
     tweet = Tk().clipboard_get()
     consumer_key = configData["consumerKey"]
-    consumer_secret =configData["consumerSecretKey"] 
+    consumer_secret = configData["consumerSecretKey"]
     access_token = configData["accessToken"]
-    access_token_secret =configData["accessSecretToken"]
+    access_token_secret = configData["accessSecretToken"]
 
-    twitterOperations = TwitterOperations(consumer_key, consumer_secret, access_token, access_token_secret)
+    twitterOperations = TwitterOperations(
+        consumer_key, consumer_secret, access_token, access_token_secret)
     twitterOperations.postTweet(tweet)
+
 
 def checkPresentChars(enteredWord):
     global presentChars
@@ -143,13 +162,15 @@ def checkPresentChars(enteredWord):
     i = 0
     for ch in enteredWord:
         global savedWords
-        btnElement = driver.find_element(By.XPATH,'//button[@data-key="'+ch.lower()+'"]')
+        btnElement = driver.find_element(
+            By.XPATH, '//button[@data-key="'+ch.lower()+'"]')
         dataState = btnElement.get_attribute('data-state')
         if alphabetDict == {}:
-            alphabetDict[ch] = CharProp(ch,dataState,None,None,btnElement)
+            alphabetDict[ch] = CharProp(ch, dataState, None, None, btnElement)
         else:
             if ch not in alphabetDict.keys():
-                alphabetDict[ch] = CharProp(ch,dataState,None,None,btnElement)
+                alphabetDict[ch] = CharProp(
+                    ch, dataState, None, None, btnElement)
 
         if dataState == 'absent':
             absentChars.append(ch)
@@ -159,7 +180,7 @@ def checkPresentChars(enteredWord):
         else:
             tile = tiles[i]
             tileDataState = tile.get_attribute('data-state')
-                
+
             if tileDataState == 'correct':
                 wrdLst = []
                 buildWord[i] = ch
@@ -184,10 +205,11 @@ def checkPresentChars(enteredWord):
                         if not wrd[i] == ch:
                            wrdLst.append(wrd)
                 savedWords = wrdLst
-                if tileDataState == 'present' :
+                if tileDataState == 'present':
                     presentChars.append(ch)
 
         i += 1
+
 
 def fetchWord():
     global savedWords
@@ -196,9 +218,11 @@ def fetchWord():
     word, isOptWord = fetchWordFromList(savedWords)
     return word, isOptWord
 
-def formWord(row):
+
+def formWord(row, rowCount):
     isFilled = False
     resultFound = False
+    correctWord = False
     tempWord = buildWord.copy()
     for ch in presentChars:
         alphabet = alphabetDict[ch]
@@ -216,52 +240,71 @@ def formWord(row):
         mergedList = mergedList+mergedList
     permutationLength = 5 - len(correctChars)
     while not isFilled:
-        word, isFilled, resultFound = permuteAndEnterWord(row, tempWord, mergedList, permutationLength)
+        word, isFilled, resultFound, correctWord = permuteAndEnterWord(
+            row, tempWord, mergedList, permutationLength, rowCount)
         if not isFilled:
             tempWord = buildWord.copy()
             mergedList += mergedList
             correctChars = [i for i in tempWord if i != '0']
             permutationLength = 5 - len(correctChars)
 
-    return word, isFilled, resultFound
+    return word, isFilled, resultFound, correctWord
 
-def enterWord(word,row):
+
+def enterWord(word, row, rowCount):
+    correctWord = True
     isFilled = False
     resultFound = False
     for alphabet in word:
         if not alphabetDict == {} and alphabet in alphabetDict.keys():
-                alphabetDict[alphabet].webElement.click()
+            alphabetDict[alphabet].webElement.click()
         else:
-            key_path = '//button[@class="Key-module_key__Rv-Vp" and @data-key="'+alphabet.lower()+'"]'
-            driver.find_element(By.XPATH,key_path).click()
-            
-    driver.find_element(By.XPATH, '//button[@class="Key-module_key__Rv-Vp Key-module_oneAndAHalf__K6JBY" and @data-key="↵"]').click()
+            key_path = '//button[@class="Key-module_key__Rv-Vp" and @data-key="' + \
+                alphabet.lower()+'"]'
+            driver.find_element(By.XPATH, key_path).click()
+
+    driver.find_element(
+        By.XPATH, '//button[@class="Key-module_key__Rv-Vp Key-module_oneAndAHalf__K6JBY" and @data-key="↵"]').click()
     time.sleep(10)
 
-    print({},"Entered Word",word)
+    print(f"Entered Word {word}")
 
+    #Modal-module_closeIcon__b4z74
     global tiles
     if checkElementExist('Modal-module_content__s8qUZ'):
         isFilled = True
-        rsltCopyBtn = driver.find_element(By.CLASS_NAME,'AuthCTA-module_shareButton__SsNA6')
+        rsltCopyBtn = driver.find_element(
+            By.CLASS_NAME, 'AuthCTA-module_shareButton__SsNA6')
         rsltCopyBtn.click()
         resultFound = True
+        if rowCount == 5:
+
+            closeBtn = driver.find_element(
+                By.CLASS_NAME, 'Modal-module_closeIcon__b4z74')
+            closeBtn.click()
+            tiles = row.find_elements(By.CLASS_NAME, 'Tile-module_tile__3ayIZ')
+            for i in range(0, 5):
+                dataState = tiles[i].get_attribute('data-state')
+                if dataState != 'correct':
+                    correctWord = False
+                    break
+
         print("Stastics Element Exists")
     else:
-        tiles = row.find_elements(By.CLASS_NAME,'Tile-module_tile__3ayIZ')
+        tiles = row.find_elements(By.CLASS_NAME, 'Tile-module_tile__3ayIZ')
         dataState = tiles[1].get_attribute('data-state')
         if dataState == 'tbd':
-            FileOperations.writeWordToCsv(nonListedWordsFile,word)
+            FileOperations.writeWordToCsv(nonListedWordsFile, word)
             hitBackSpace(5)
             nonChanceWords.append(word)
         else:
             if word not in storedWords:
-                FileOperations.writeWordToCsv(storedWordsFile,word)
+                FileOperations.writeWordToCsv(storedWordsFile, word)
 
             isFilled = True
             nonChanceWords.append(word)
 
-    return isFilled, resultFound
+    return isFilled, resultFound, correctWord
 
 
 def fetchWordFromList(listedWord):
@@ -269,11 +312,12 @@ def fetchWordFromList(listedWord):
     isOptWord = False
     for word in listedWord:
         isOptWord = checkOptWord(word)
-        if isOptWord:         
+        if isOptWord:
             break
-    return word,isOptWord
+    return word, isOptWord
 
-def permuteAndEnterWord(row, tempWord, mergedList, permutationLength):
+
+def permuteAndEnterWord(row, tempWord, mergedList, permutationLength, rowCount):
     isFilled = False
     resultFound = False
     for y in list(permutations(mergedList, permutationLength)):
@@ -284,18 +328,20 @@ def permuteAndEnterWord(row, tempWord, mergedList, permutationLength):
                     newWord[idx] = c
                     break
 
-        word="".join(newWord)
-        if len(word)==5:
-            if  word not in permutatedWords:
+        word = "".join(newWord)
+        if len(word) == 5:
+            if word not in permutatedWords:
                 isOptWord = checkOptWord(word)
                 if isOptWord:
-                    isFilled, resultFound = enterWord(word,row)
+                    isFilled, resultFound, correctWord = enterWord(
+                        word, row, rowCount)
                 if isFilled:
                     break
                 print(word)
                 permutatedWords.append(word)
                 FileOperations.writeWordToCsv(permutatedWordsFile, word)
-    return word, isFilled, resultFound
+    return word, isFilled, resultFound, correctWord
+
 
 def checkElementExist(className):
     try:
@@ -304,10 +350,13 @@ def checkElementExist(className):
         return False
     return True
 
+
 def hitBackSpace(times):
-    for i in range(0,times):
-        driver.find_element(By.XPATH, '//button[@class="Key-module_key__Rv-Vp Key-module_oneAndAHalf__K6JBY" and @data-key="←"]').click()
+    for i in range(0, times):
+        driver.find_element(
+            By.XPATH, '//button[@class="Key-module_key__Rv-Vp Key-module_oneAndAHalf__K6JBY" and @data-key="←"]').click()
     time.sleep(1)
+
 
 def checkOptWord(word):
     isWord = aChancefulWord(word)
@@ -315,10 +364,11 @@ def checkOptWord(word):
     isCharsPresent = isPresentCharsInWord(word)
     isNotInNonSlots = isCharNotInNonSlots(word)
     isInSlots = isCharsInSlots(word)
-    if isWord and isCharsAbsent and isCharsPresent and isNotInNonSlots and isInSlots :
+    if isWord and isCharsAbsent and isCharsPresent and isNotInNonSlots and isInSlots:
         return True
 
     return False
+
 
 def aChancefulWord(word):
     if nonChanceWords:
@@ -326,12 +376,14 @@ def aChancefulWord(word):
             return False
     return True
 
+
 def isAbsentCharsInWord(word):
-    if absentChars:        
+    if absentChars:
         for char in absentChars:
             if char in word:
                 return False
     return True
+
 
 def isPresentCharsInWord(word):
     isPresentCharsinWord = True
@@ -344,7 +396,8 @@ def isPresentCharsInWord(word):
             if not alphabetDict == {}:
                 alphabet = alphabetDict[ch]
                 for chance in alphabet.non_chances_slots:
-                    wordIndices = [i for i, ltr in enumerate(word) if ltr == ch]
+                    wordIndices = [
+                        i for i, ltr in enumerate(word) if ltr == ch]
                     if chance in wordIndices:
                         isPresentCharsinWord = False
                         break
@@ -355,26 +408,28 @@ def isPresentCharsInWord(word):
                     # for chance in alphabet.slot_chances:
                     #     if word[chance] != ch:
                     #         isPresentCharsinWord = False
-                                        
+
             i += 1
     return isPresentCharsinWord
+
 
 def isCharNotInNonSlots(word):
     idx = 0
     for ch in word:
         if not alphabetDict == {}:
-            if ch in alphabetDict.keys():                
+            if ch in alphabetDict.keys():
                 alphabet = alphabetDict[ch]
                 non_chances_slot = alphabet.non_chances_slots
                 if non_chances_slot:
-                    if word[idx] == ch and idx in  non_chances_slot:
+                    if word[idx] == ch and idx in non_chances_slot:
                         return False
         idx += 1
     return True
 
+
 def isCharsInSlots(word):
     idx = 0
-    correctChars = [ch for ch in buildWord if ch != '0' ]
+    correctChars = [ch for ch in buildWord if ch != '0']
     if correctChars != []:
         for ch in buildWord:
             if ch != '0':
@@ -392,6 +447,7 @@ def main():
     closePopUp(driver)
     findWord()
     time.sleep(5)
+
 
 if __name__ == "__main__":
     main()
