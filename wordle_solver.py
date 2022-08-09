@@ -145,7 +145,6 @@ def checkPresentChars(enteredWord):
         global savedWords
         btnElement = driver.find_element(By.XPATH,'//button[@data-key="'+ch.lower()+'"]')
         dataState = btnElement.get_attribute('data-state')
-        print(btnElement.get_attribute("outerHTML"))
         if alphabetDict == {}:
             alphabetDict[ch] = CharProp(ch,dataState,None,None,btnElement)
         else:
@@ -154,7 +153,8 @@ def checkPresentChars(enteredWord):
 
         if dataState == 'absent':
             absentChars.append(ch)
-            possibleChars.remove(ch)
+            if ch in possibleChars:
+                possibleChars.remove(ch)
             savedWords = [wrd for wrd in savedWords if ch not in wrd]
         else:
             tile = tiles[i]
@@ -187,7 +187,6 @@ def checkPresentChars(enteredWord):
                 if tileDataState == 'present' :
                     presentChars.append(ch)
 
-        alphabetDict[ch].toPrint()
         i += 1
 
 def fetchWord():
@@ -238,6 +237,8 @@ def enterWord(word,row):
             
     driver.find_element(By.XPATH, '//button[@class="Key-module_key__Rv-Vp Key-module_oneAndAHalf__K6JBY" and @data-key="↵"]').click()
     time.sleep(10)
+
+    print({},"Entered Word",word)
 
     global tiles
     if checkElementExist('Modal-module_content__s8qUZ'):
