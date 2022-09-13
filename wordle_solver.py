@@ -23,6 +23,16 @@ possibleChars = [x for x in 'EARIOTNSLCUDPMHGBFYWKVXZJQ']
 buildWord = ['0', '0', '0', '0', '0']
 
 
+def main():
+    global driver
+    initConfigFile()
+    driver = initDriver(website)
+    initValues()
+    closePopUp(driver)
+    findWord()
+    time.sleep(5)
+
+
 def initConfigFile():
     global configData
     configFilePath = FileOperations.parseFileName('configs', 'config.json')
@@ -405,10 +415,6 @@ def isPresentCharsInWord(word):
                     if buildWord[i] != ch or word[i] != ch:
                         isPresentCharsinWord = False
 
-                    # for chance in alphabet.slot_chances:
-                    #     if word[chance] != ch:
-                    #         isPresentCharsinWord = False
-
             i += 1
     return isPresentCharsinWord
 
@@ -437,16 +443,6 @@ def isCharsInSlots(word):
                     return False
             idx += 1
     return True
-
-
-def main():
-    global driver
-    initConfigFile()
-    driver = initDriver(website)
-    initValues()
-    closePopUp(driver)
-    findWord()
-    time.sleep(5)
 
 
 if __name__ == "__main__":
